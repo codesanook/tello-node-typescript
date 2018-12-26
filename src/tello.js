@@ -1,17 +1,14 @@
 const dgram = require('dgram')
 
-const PORT = 8889
+const CMD_PORT = 8889
+const STATUS_PORT = 8890
+const CAMERA_PORT = 8889
 const HOST = '192.168.10.1'
 
 class Tello {
-  constructor(callback) {
-    this.client = dgram.createSocket('udp4')
-    this.client.bind(8001)
-    this.client.on('message', (msg, info) => {
-      console.log('Data received from server : ' + msg.toString())
-      callback()
-      this.executeQueuedCommand()
-    })
+  constructor(commandFinishedCallback) {
+    this.initializeStatusClient()
+    this.initializeCommandClient(commandFinishedCallback)
 
     this.queuedCommands = []
     this.executingCommand = null
@@ -23,8 +20,34 @@ class Tello {
     await this.command('battery?')
   }
 
-  close() {
-    this.client.close()
+  initializeStatusClient() {
+    this.statusClient = dgram.createSocket('udp4')
+    this.statusClient.bind(STATUS_PORT)
+    this.statusClient.on('message', this.updateDroneStatus)
+  }
+
+  initializeCommandClient(commandFinishedCallback) {
+    this.client = dgram.createSocket('udp4')
+    this.client.bind(CMD_PORT)
+    this.client.on('message', (msg, info) => {
+      console.log('Data received from server : ' + msg.toString())
+      commandFinishedCallback()
+      this.executeQueuedCommand()
+    })
+  }
+
+  updateDroneStatus(msg, info) {
+    const dataString = msg
+      .toString()
+      .split(';')
+      .slice(0, -1)
+    const status = {}
+    dataString.forEach(dataPoint => {
+      const dataPointTuple = dataPoint.split(':')
+      status[dataPointTuple[0]] = dataPointTuple[1]
+    })
+
+    this.status = status
   }
 
   uhoh() {
@@ -34,9 +57,11 @@ class Tello {
   initiateTestFlight() {
     this.queuedCommands = [
       { text: 'takeoff', wait: 0 },
-      { text: 'up 50', wait: 0 },
+      { text: 'up 100', wait: 0 },
       { text: 'flip f', wait: 50 },
-      { text: 'back 50', wait: 0 },
+      { text: 'flip b', wait: 50 },
+      { text: 'flip l', wait: 50 },
+      { text: 'flip r', wait: 50 },
       { text: 'down 50', wait: 0 },
       { text: 'land', wait: 500 },
       { text: 'battery?', wait: null },
@@ -58,7 +83,7 @@ class Tello {
 
     return new Promise((resolve, reject) => {
       console.log(`Command: ${command}`)
-      this.client.send(command, 0, command.length, PORT, HOST, (err, bytes) => {
+      this.client.send(command, 0, command.length, CMD_PORT, HOST, (err, bytes) => {
         if (err) {
           reject(err)
         }
@@ -67,6 +92,10 @@ class Tello {
         resolve()
       })
     })
+  }
+
+  close() {
+    this.client.close()
   }
 }
 
