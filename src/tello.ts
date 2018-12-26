@@ -72,6 +72,8 @@ class Tello {
   private statusClient: dgram.Socket = dgram.createSocket('udp4')
   private videoClient: dgram.Socket = dgram.createSocket('udp4')
 
+  private liveLogger = console.log
+
   private executingCommand: string | null = null
   private queuedCommands: Command[] = []
   private status: StatusChanges = {
@@ -87,37 +89,40 @@ class Tello {
 
   public isConnected = () => this.connected
 
-  public async initialize() {
-    console.info('Initializing drone connection')
+  public initialize = async () => {
+    this.liveLogger('Initializing drone connection')
     await this.command('command')
     await this.command('battery?')
   }
 
-  private initializeCommandClient(commandFinishedCallback) {
+  private initializeCommandClient = commandFinishedCallback => {
     this.client.bind(CMD_PORT)
     this.client.on('message', msg => {
-      console.debug('Data received from server : ' + msg.toString())
+      this.liveLogger('Data received from server:')
+      this.liveLogger(msg.toString())
 
       if (this.executingCommand === 'command') {
         this.connected = true
       }
 
       this.executingCommand = null
-      commandFinishedCallback()
+      if (this.liveLogger === console.log) {
+        commandFinishedCallback()
+      }
       this.executeQueuedCommand()
     })
   }
 
-  private initializeStatusClient() {
+  private initializeStatusClient = () => {
     this.statusClient.bind(STATUS_PORT)
     this.statusClient.on('message', this.updateDroneStatus)
   }
 
-  private initializeVideoClient() {
+  private initializeVideoClient = () => {
     this.videoClient = dgram.createSocket('udp4')
     this.videoClient.bind(CAMERA_PORT)
     this.videoClient.on('message', (msg, info) => {
-      console.log(msg.toString())
+      // console.log(msg.toString())
     })
   }
 
@@ -129,7 +134,7 @@ class Tello {
     const status = {}
     dataString.forEach(dataPoint => {
       const dataPointTuple = dataPoint.split(':')
-      if (Number.isNaN(dataPointTuple[1])) {
+      if (dataPointTuple[0] === 'mpry') {
         status[dataPointTuple[0]] = dataPointTuple[1]
       } else {
         status[dataPointTuple[0]] = +dataPointTuple[1]
@@ -138,6 +143,10 @@ class Tello {
 
     this.status.previous = this.status.current
     this.status.current = status
+  }
+
+  setLogger(log: (value: string) => boolean) {
+    this.liveLogger = log
   }
 
   public getStatus(): DroneStatus | {} {
@@ -152,11 +161,14 @@ class Tello {
     this.queuedCommands = [
       { text: 'takeoff', wait: 0 },
       { text: 'up 100', wait: 0 },
-      { text: 'flip f', wait: 50 },
-      { text: 'flip b', wait: 50 },
-      { text: 'flip l', wait: 50 },
-      { text: 'flip r', wait: 50 },
-      { text: 'down 50', wait: 0 },
+      { text: 'forward 250', wait: 0 },
+      { text: 'cw 90', wait: 0 },
+      { text: 'forward 250', wait: 0 },
+      { text: 'cw 90', wait: 0 },
+      { text: 'forward 250', wait: 0 },
+      { text: 'cw 90', wait: 0 },
+      { text: 'forward 250', wait: 0 },
+      // { text: 'curve 25 25 25 25 25 25 10', wait: 500 },
       { text: 'land', wait: 500 },
       { text: 'battery?', wait: null },
     ]
@@ -176,7 +188,6 @@ class Tello {
     this.executingCommand = command
 
     return new Promise((resolve, reject) => {
-      console.log(`Command: ${command}`)
       this.client.send(command, 0, command.length, CMD_PORT, HOST, (err, bytes) => {
         if (err) {
           reject(err)

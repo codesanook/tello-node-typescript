@@ -5,8 +5,13 @@ import LiveStatus from './live'
 
 const rl = readline.createInterface(process.stdin, process.stdout)
 const drone = new Tello(() => {
-  rl.prompt()
+  // rl.prompt()
 })
+
+setTimeout(() => {
+  const log = LiveStatus.start(drone)
+  drone.setLogger(log)
+}, 500)
 
 rl.on('line', input => {
   const commandStr = input.trim()

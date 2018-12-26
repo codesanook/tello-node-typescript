@@ -1,11 +1,13 @@
 import * as contrib from 'blessed-contrib'
 import blessed from 'blessed'
+
 import DonutData = contrib.Widgets.DonutData
 import BarData = contrib.Widgets.BarData
 import LogElement = contrib.Widgets.LogElement
 import BarElement = contrib.Widgets.BarElement
 import DonutElement = contrib.Widgets.DonutElement
 import MarkdownElement = contrib.Widgets.MarkdownElement
+import LineElement = contrib.Widgets.LineElement
 
 import { DroneStatus } from './tello'
 
@@ -28,15 +30,8 @@ const createDonut = (label: string, value: number, high: boolean): DonutData => 
 }
 
 const droneToDonuts = (status: DroneStatus): DonutData[] => {
-  // @ts-ignore
-  if (status === {}) {
-    throw Error('Drone info lost')
-  }
-
   return [createDonut('battery', status.bat, true), createDonut('temp', status.temph, false)]
 }
-
-let timer = null
 
 const sign = (value: number): '+' | '-' => (value < 0 ? '-' : '+')
 
@@ -52,6 +47,39 @@ const droneToRawValuesMarkdown = (status: DroneStatus): string => {
   return `${keys.map(key => `${key}: ${status[key]}`).join('\n')}`
 }
 
+const speedLabels = Array(10).fill('.')
+const sharedGraphOptions = {
+  style: { line: 'yellow', baseline: 'black' },
+  wholeNumbersOnly: true,
+  minY: -100,
+  maxY: 100,
+}
+
+const xSpeedHistory = Array(10).fill(0)
+const droneToUpdatedXSpeedhistory = (status: DroneStatus) => {
+  xSpeedHistory.shift()
+  xSpeedHistory.push(status.vgx)
+  const graph = { title: null, x: speedLabels, y: xSpeedHistory }
+  return [graph]
+}
+
+const ySpeedHistory = Array(10).fill(0)
+const droneToUpdatedYSpeedhistory = (status: DroneStatus) => {
+  ySpeedHistory.shift()
+  ySpeedHistory.push(status.vgy)
+  const graph = { title: null, x: speedLabels, y: ySpeedHistory }
+  return [graph]
+}
+
+const zSpeedHistory = Array(10).fill(0)
+const droneToUpdatedZSpeedhistory = (status: DroneStatus) => {
+  zSpeedHistory.shift()
+  zSpeedHistory.push(status.vgz)
+  const graph = { title: null, x: speedLabels, y: zSpeedHistory }
+  return [graph]
+}
+
+let timer = null
 const start = drone => {
   if (drone.getStatus() === {}) {
     throw Error('Drone not ready')
@@ -73,24 +101,43 @@ const start = drone => {
     xOffset: 0,
     maxHeight: 180,
   })
-  const log: LogElement = grid.set(3, 0, 9, 4, contrib.log, {
+  const log: LogElement = grid.set(6, 8, 6, 4, contrib.log, {
     fg: 'white',
     selectedFg: 'green',
     label: 'Output',
   })
-  const rawData: MarkdownElement = grid.set(0, 8, 4, 4, contrib.markdown, { label: 'Raw values' })
+  const xGraph: LineElement = grid.set(3, 0, 3, 4, contrib.line, {
+    ...sharedGraphOptions,
+    label: 'X speed',
+  })
+  const yGraph: LineElement = grid.set(6, 0, 3, 4, contrib.line, {
+    ...sharedGraphOptions,
+    label: 'Y speed',
+  })
+  const zGraph: LineElement = grid.set(9, 0, 3, 4, contrib.line, {
+    ...sharedGraphOptions,
+    label: 'Z speed',
+  })
+  const rawData: MarkdownElement = grid.set(0, 8, 6, 4, contrib.markdown, { label: 'Raw values' })
 
   screen.render()
 
   timer = setInterval(() => {
-    donuts.setData(droneToDonuts(drone.getStatus()))
-    axisBars.setData(droneToAxisBars(drone.getStatus()))
+    const status = drone.getStatus()
+
     // @ts-ignore
-    rawData.setMarkdown(droneToRawValuesMarkdown(drone.getStatus()))
+    rawData.setMarkdown(droneToRawValuesMarkdown(status))
+    donuts.setData(droneToDonuts(status))
+    axisBars.setData(droneToAxisBars(status))
+    xGraph.setData(droneToUpdatedXSpeedhistory(status))
+    yGraph.setData(droneToUpdatedYSpeedhistory(status))
+    zGraph.setData(droneToUpdatedZSpeedhistory(status))
     screen.render()
   }, 16)
 
-  return log.log
+  return (value: string) => {
+    return log.log(value)
+  }
 }
 
 const stop = () => {}
