@@ -1,33 +1,41 @@
-const dgram = require('dgram')
+import * as dgram from 'dgram'
 
 const CMD_PORT = 8889
 const STATUS_PORT = 8890
-const CAMERA_PORT = 8889
+const CAMERA_PORT = 11111
 const HOST = '192.168.10.1'
 
-class Tello {
-  constructor(commandFinishedCallback) {
-    this.initializeStatusClient()
-    this.initializeCommandClient(commandFinishedCallback)
+interface DroneStatus {
+  something?: boolean
+}
 
-    this.queuedCommands = []
-    this.executingCommand = null
+type Command = {
+  text: string
+  wait?: number
+}
+
+class Tello {
+  private client: dgram.Socket = dgram.createSocket('udp4')
+  private statusClient: dgram.Socket = dgram.createSocket('udp4')
+  private videoClient: dgram.Socket = dgram.createSocket('udp4')
+
+  private executingCommand: string | null = null
+  private queuedCommands: Command[] = []
+  private status: DroneStatus = {}
+
+  constructor(commandFinishedCallback) {
+    this.initializeCommandClient(commandFinishedCallback)
+    this.initializeStatusClient()
+    this.initializeVideoClient()
   }
 
-  async initialize() {
+  public async initialize() {
     console.info('Initializing drone connection')
     await this.command('command')
     await this.command('battery?')
   }
 
-  initializeStatusClient() {
-    this.statusClient = dgram.createSocket('udp4')
-    this.statusClient.bind(STATUS_PORT)
-    this.statusClient.on('message', this.updateDroneStatus)
-  }
-
-  initializeCommandClient(commandFinishedCallback) {
-    this.client = dgram.createSocket('udp4')
+  private initializeCommandClient(commandFinishedCallback) {
     this.client.bind(CMD_PORT)
     this.client.on('message', (msg, info) => {
       console.log('Data received from server : ' + msg.toString())
@@ -36,7 +44,20 @@ class Tello {
     })
   }
 
-  updateDroneStatus(msg, info) {
+  private initializeStatusClient() {
+    this.statusClient.bind(STATUS_PORT)
+    this.statusClient.on('message', this.updateDroneStatus)
+  }
+
+  private initializeVideoClient() {
+    this.videoClient = dgram.createSocket('udp4')
+    this.videoClient.bind(CAMERA_PORT)
+    this.videoClient.on('message', (msg, info) => {
+      console.log(msg.toString())
+    })
+  }
+
+  private updateDroneStatus(msg, info) {
     const dataString = msg
       .toString()
       .split(';')
@@ -99,4 +120,4 @@ class Tello {
   }
 }
 
-module.exports = Tello
+export default Tello

@@ -1,6 +1,6 @@
-const readline = require('readline')
+import * as readline from 'readline'
 
-const Tello = require('./tello')
+import Tello from './tello'
 
 const rl = readline.createInterface(process.stdin, process.stdout)
 
@@ -33,6 +33,6 @@ rl.on('line', input => {
 const prefix = 'Droneboi > '
 ;(async () => {
   await drone.initialize()
-  rl.setPrompt(prefix, prefix.length)
+  rl.setPrompt(prefix)
   rl.prompt()
 })()
