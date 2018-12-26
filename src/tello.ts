@@ -67,6 +67,7 @@ type Command = {
 }
 
 class Tello {
+  private connected: boolean = false
   private client: dgram.Socket = dgram.createSocket('udp4')
   private statusClient: dgram.Socket = dgram.createSocket('udp4')
   private videoClient: dgram.Socket = dgram.createSocket('udp4')
@@ -84,6 +85,8 @@ class Tello {
     this.initializeVideoClient()
   }
 
+  public isConnected = () => this.connected
+
   public async initialize() {
     console.info('Initializing drone connection')
     await this.command('command')
@@ -92,8 +95,14 @@ class Tello {
 
   private initializeCommandClient(commandFinishedCallback) {
     this.client.bind(CMD_PORT)
-    this.client.on('message', (msg, info) => {
-      console.log('Data received from server : ' + msg.toString())
+    this.client.on('message', msg => {
+      console.debug('Data received from server : ' + msg.toString())
+
+      if (this.executingCommand === 'command') {
+        this.connected = true
+      }
+
+      this.executingCommand = null
       commandFinishedCallback()
       this.executeQueuedCommand()
     })
@@ -173,7 +182,6 @@ class Tello {
           reject(err)
         }
 
-        this.executingCommand = null
         resolve()
       })
     })
@@ -181,6 +189,8 @@ class Tello {
 
   close() {
     this.client.close()
+    this.statusClient.close()
+    this.videoClient.close()
   }
 }
 

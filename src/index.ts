@@ -4,7 +4,6 @@ import Tello from './tello'
 import LiveStatus from './live'
 
 const rl = readline.createInterface(process.stdin, process.stdout)
-
 const drone = new Tello(() => {
   rl.prompt()
 })
