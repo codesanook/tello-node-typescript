@@ -1,6 +1,7 @@
 import * as readline from 'readline'
 
 import Tello from './tello'
+import LiveStatus from './live'
 
 const rl = readline.createInterface(process.stdin, process.stdout)
 
@@ -18,6 +19,18 @@ rl.on('line', input => {
       break
     case 'testflight':
       drone.initiateTestFlight()
+      break
+    case 'status':
+      console.info(drone.getStatus())
+      rl.prompt()
+      break
+    case 'live':
+      LiveStatus.start(drone)
+      break
+    case 'help':
+    case 'stop':
+    case 'no':
+      drone.uhoh()
       break
     default:
       drone.command(commandStr).catch(error => {

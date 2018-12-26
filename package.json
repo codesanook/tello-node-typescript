@@ -21,6 +21,8 @@
     "prettier": "^1.15.3"
   },
   "dependencies": {
-    "@types/node": "^10.12.18"
+    "@types/node": "^10.12.18",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.8.9"
   }
 }

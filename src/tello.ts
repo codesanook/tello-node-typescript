@@ -5,8 +5,60 @@ const STATUS_PORT = 8890
 const CAMERA_PORT = 11111
 const HOST = '192.168.10.1'
 
-interface DroneStatus {
-  something?: boolean
+/**
+ * Example status:
+  {
+    mid: '257',
+    x: '0',
+    y: '0',
+    z: '0',
+    mpry: '0,0,0',
+    pitch: '-1',
+    roll: '0',
+    yaw: '0',
+    vgx: '0',
+    vgy: '0',
+    vgz: '0',
+    templ: '65',
+    temph: '67',
+    tof: '10',
+    h: '0',
+    bat: '100',
+    baro: '60.16',
+    time: '0',
+    agx: '-20.00',
+    agy: '-13.00',
+    agz: '-1000.00',
+  }
+ */
+
+export interface DroneStatus {
+  mid: number
+  x: number
+  y: number
+  z: number
+  mpry: string
+  pitch: number
+  roll: number
+  yaw: number
+  vgx: number
+  vgy: number
+  vgz: number
+  templ: number
+  temph: number
+  tof: number
+  h: number
+  bat: number
+  baro: number
+  time: number
+  agx: number
+  agy: number
+  agz: number
+}
+
+type StatusChanges = {
+  current: DroneStatus | {}
+  previous: DroneStatus | {}
 }
 
 type Command = {
@@ -21,7 +73,10 @@ class Tello {
 
   private executingCommand: string | null = null
   private queuedCommands: Command[] = []
-  private status: DroneStatus = {}
+  private status: StatusChanges = {
+    current: {},
+    previous: {},
+  }
 
   constructor(commandFinishedCallback) {
     this.initializeCommandClient(commandFinishedCallback)
@@ -57,7 +112,7 @@ class Tello {
     })
   }
 
-  private updateDroneStatus(msg, info) {
+  private updateDroneStatus = (msg, info) => {
     const dataString = msg
       .toString()
       .split(';')
@@ -65,10 +120,19 @@ class Tello {
     const status = {}
     dataString.forEach(dataPoint => {
       const dataPointTuple = dataPoint.split(':')
-      status[dataPointTuple[0]] = dataPointTuple[1]
+      if (Number.isNaN(dataPointTuple[1])) {
+        status[dataPointTuple[0]] = dataPointTuple[1]
+      } else {
+        status[dataPointTuple[0]] = +dataPointTuple[1]
+      }
     })
 
-    this.status = status
+    this.status.previous = this.status.current
+    this.status.current = status
+  }
+
+  public getStatus(): DroneStatus | {} {
+    return this.status.current
   }
 
   uhoh() {
