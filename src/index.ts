@@ -2,6 +2,7 @@ import * as readline from 'readline'
 
 import Tello from './tello'
 import LiveStatus from './live'
+import Input from './input'
 
 const rl = readline.createInterface(process.stdin, process.stdout)
 const drone = new Tello(() => {
@@ -11,6 +12,10 @@ const drone = new Tello(() => {
 setTimeout(() => {
   const log = LiveStatus.start(drone)
   drone.setLogger(log)
+
+  Input.setLogger(log);
+  Input.initialize(drone)
+
 }, 500)
 
 rl.on('line', input => {

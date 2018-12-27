@@ -81,6 +81,11 @@ class Tello {
     previous: {},
   }
 
+  public readonly actions = {
+    takeOff: () => this.command("takeoff"),
+    land: () => this.command("land")
+  }
+
   constructor(commandFinishedCallback) {
     this.initializeCommandClient(commandFinishedCallback)
     this.initializeStatusClient()

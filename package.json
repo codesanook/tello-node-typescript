@@ -23,6 +23,7 @@
   "dependencies": {
     "@types/node": "^10.12.18",
     "blessed": "^0.1.81",
-    "blessed-contrib": "^4.8.9"
+    "blessed-contrib": "^4.8.9",
+    "gamepad": "^1.6.0"
   }
 }
