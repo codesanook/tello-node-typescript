@@ -72,7 +72,7 @@ class Tello {
   private statusClient: dgram.Socket = dgram.createSocket('udp4')
   private videoClient: dgram.Socket = dgram.createSocket('udp4')
 
-  private liveLogger = console.log
+  private logger = console.log
 
   private executingCommand: string | null = null
   private queuedCommands: Command[] = []
@@ -82,8 +82,8 @@ class Tello {
   }
 
   public readonly actions = {
-    takeOff: () => this.command("takeoff"),
-    land: () => this.command("land")
+    takeOff: () => this.command('takeoff'),
+    land: () => this.command('land'),
   }
 
   constructor(commandFinishedCallback) {
@@ -95,7 +95,7 @@ class Tello {
   public isConnected = () => this.connected
 
   public initialize = async () => {
-    this.liveLogger('Initializing drone connection')
+    this.logger('Initializing drone connection')
     await this.command('command')
     await this.command('battery?')
   }
@@ -103,15 +103,14 @@ class Tello {
   private initializeCommandClient = commandFinishedCallback => {
     this.client.bind(CMD_PORT)
     this.client.on('message', msg => {
-      this.liveLogger('Data received from server:')
-      this.liveLogger(msg.toString())
+      this.logger(`Message received from drone (${this.executingCommand}): ${msg.toString()}`)
 
       if (this.executingCommand === 'command') {
         this.connected = true
       }
 
       this.executingCommand = null
-      if (this.liveLogger === console.log) {
+      if (this.logger === console.log) {
         commandFinishedCallback()
       }
       this.executeQueuedCommand()
@@ -151,7 +150,7 @@ class Tello {
   }
 
   setLogger(log: (value: string) => boolean) {
-    this.liveLogger = log
+    this.logger = log
   }
 
   public getStatus(): DroneStatus | {} {
@@ -191,6 +190,8 @@ class Tello {
 
   command(command) {
     this.executingCommand = command
+
+    this.logger(`Sending command: "${command}"`)
 
     return new Promise((resolve, reject) => {
       this.client.send(command, 0, command.length, CMD_PORT, HOST, (err, bytes) => {

@@ -51,8 +51,8 @@ const speedLabels = Array(10).fill('.')
 const sharedGraphOptions = {
   style: { line: 'yellow', baseline: 'black' },
   wholeNumbersOnly: true,
-  minY: -100,
-  maxY: 100,
+  minY: -25,
+  maxY: 25,
 }
 
 const xSpeedHistory = Array(10).fill(0)
@@ -94,14 +94,14 @@ const start = drone => {
     remainColor: 'black',
     yPadding: 2,
   })
-  const axisBars: BarElement = grid.set(0, 4, 4, 4, contrib.bar, {
+  const axisBars: BarElement = grid.set(0, 4, 3, 4, contrib.bar, {
     label: 'Orientation',
     barWidth: 8,
     barSpacing: 4,
     xOffset: 0,
     maxHeight: 180,
   })
-  const log: LogElement = grid.set(6, 8, 6, 4, contrib.log, {
+  const log: LogElement = grid.set(6, 6, 6, 6, contrib.log, {
     fg: 'white',
     selectedFg: 'green',
     label: 'Output',

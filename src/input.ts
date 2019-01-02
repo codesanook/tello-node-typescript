@@ -4,6 +4,8 @@ import Tello from './tello'
 
 let logger = console.log
 
+const logControllerInput = false
+
 const setLogger = (log: (value: string) => boolean) => {
   logger = log
 }
@@ -66,8 +68,8 @@ const initialize = (drone: Tello) => {
         3: () => drone.command('rc -50 0 0 0'),
       },
       1: {
-        2: () => drone.command('flip f'),
-        1: () => drone.command('flip b'),
+        2: () => drone.command('flip b'),
+        1: () => drone.command('flip f'),
         0: () => drone.command('flip l'),
         3: () => drone.command('flip r'),
         12: () => drone.uhoh(),
@@ -91,36 +93,42 @@ const initialize = (drone: Tello) => {
       return
     }
 
-    logger(`Going ${x}, ${y}, ${z}, ${yaw}`)
+    logger(`Going x: ${x}, y: ${y}, z: ${z}, yaw: ${yaw}`)
     axisState.moving = true
     axisState.previous = { x, y, z, yaw }
 
     drone.command(`rc ${-x * 100} ${-y * 100} ${z * 100} ${yaw * 100}`)
-  }, 100)
+  }, 200)
 
   const executeAction = (type: string, device: number, axis: number, value?: number) => {
-    actionMap[type][device][axis](value)
+    try {
+      actionMap[type][device][axis](value)
+    } catch (e) {
+      logger(`Unknown button mapping: ${type}-${device}-${axis}-(${value})`)
+    }
   }
 
   gamepad.on('move', function(id, axis, value) {
     executeAction('move', id, axis, value)
-    logger(
-      `move: ${JSON.stringify({
-        id: id,
-        axis: axis,
-        value: value,
-      })}`,
-    )
+    if (logControllerInput)
+      logger(
+        `move: ${JSON.stringify({
+          id: id,
+          axis: axis,
+          value: value,
+        })}`,
+      )
   })
 
   gamepad.on('up', function(id, num) {
     executeAction('up', id, num)
-    logger(
-      `up: ${JSON.stringify({
-        id: id,
-        num: num,
-      })}`,
-    )
+    if (logControllerInput)
+      logger(
+        `up: ${JSON.stringify({
+          id: id,
+          num: num,
+        })}`,
+      )
   })
 }
 
