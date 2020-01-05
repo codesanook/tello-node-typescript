@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "license": "MIT",
-  "engines": {
-    "node": ">=11.5.0"
-  },
   "scripts": {
     "build": "ncc build src/index.ts -o dist",
     "build:watch": "ncc build src/index.ts -o dist -w",

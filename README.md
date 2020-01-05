@@ -15,3 +15,6 @@ TODO:
 - ...
 
 Used examples from https://github.com/jsolderitsch/tello-nodejs on how to connect to the drone via UDP using dgram.
+
+Dependencies
+- Python 2.7
